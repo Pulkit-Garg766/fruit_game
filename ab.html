@@ -1,0 +1,300 @@
+<style>
+  .game-root { font-family: var(--font-sans); color: var(--color-text-primary); padding: 1rem 0; }
+  .hud { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 1rem; }
+  .stat { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; }
+  .stat-label { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 4px; }
+  .stat-value { font-size: 22px; font-weight: 500; margin: 0; }
+  .panel { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .panel h3 { margin: 0 0 12px; font-size: 16px; font-weight: 500; }
+  .players { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+  .p-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; font-size: 13px; border-left: 3px solid var(--color-border-tertiary); }
+  .p-card.you { border-left-color: #185FA5; background: #E6F1FB; color: #0C447C; }
+  .p-card.dead { opacity: 0.45; text-decoration: line-through; }
+  .p-card .pname { font-weight: 500; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .p-card .prow { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-secondary); }
+  .p-card.you .prow { color: #185FA5; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .trade-box { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; }
+  .trade-box h4 { margin: 0 0 10px; font-size: 14px; font-weight: 500; }
+  .field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+  .field label { min-width: 60px; color: var(--color-text-secondary); }
+  .field input, .field select { flex: 1; }
+  .btn-row { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
+  .log { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; font-size: 12px; max-height: 140px; overflow-y: auto; font-family: var(--font-mono); }
+  .log div { margin-bottom: 3px; }
+  .log .buy { color: #0F6E56; }
+  .log .sell { color: #993C1D; }
+  .log .die { color: #A32D2D; }
+  .log .tick { color: var(--color-text-tertiary); }
+  .prices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .price-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; text-align: center; }
+  .price-card .lbl { font-size: 12px; color: var(--color-text-secondary); }
+  .price-card .val { font-size: 22px; font-weight: 500; }
+  .game-over { text-align: center; padding: 2rem; background: #E6F1FB; border-radius: var(--border-radius-lg); color: #0C447C; }
+  .game-over h2 { margin: 0 0 8px; font-size: 22px; font-weight: 500; }
+  .you-badge { background: #185FA5; color: white; font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 500; }
+</style>
+
+<div class="game-root">
+  <div class="hud">
+    <div class="stat"><p class="stat-label">Time survived</p><p class="stat-value" id="time">0s</p></div>
+    <div class="stat"><p class="stat-label">Alive</p><p class="stat-value" id="alive">10 / 10</p></div>
+    <div class="stat"><p class="stat-label">Apple · last</p><p class="stat-value" id="p-apple">—</p></div>
+    <div class="stat"><p class="stat-label">Orange · last</p><p class="stat-value" id="p-orange">—</p></div>
+  </div>
+
+  <div class="panel">
+    <h3>Players</h3>
+    <div class="players" id="players"></div>
+  </div>
+
+  <div class="panel" id="ctrl-panel">
+    <h3>Your actions</h3>
+    <div class="controls">
+      <div class="trade-box">
+        <h4>Buy (spend coins)</h4>
+        <div class="field"><label>item</label>
+          <select id="buy-item"><option value="apple">apple</option><option value="orange">orange</option></select>
+        </div>
+        <div class="field"><label>qty</label><input type="number" id="buy-qty" value="1" min="1" /></div>
+        <div class="field"><label>max ¢</label><input type="number" id="buy-price" value="2" min="1" step="0.5" /></div>
+        <button onclick="placeBuy()">Place buy order</button>
+      </div>
+      <div class="trade-box">
+        <h4>Sell (gain coins)</h4>
+        <div class="field"><label>item</label>
+          <select id="sell-item"><option value="orange">orange</option><option value="apple">apple</option></select>
+        </div>
+        <div class="field"><label>qty</label><input type="number" id="sell-qty" value="1" min="1" /></div>
+        <div class="field"><label>min ¢</label><input type="number" id="sell-price" value="2" min="1" step="0.5" /></div>
+        <button onclick="placeSell()">Place sell order</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button onclick="toggleGame()" id="pp-btn">Pause</button>
+      <button onclick="resetGame()">Reset</button>
+      <button onclick="changeSpeed()" id="spd-btn">Speed: 1×</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Market log</h3>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const NAMES = ['Ava','Ben','Cleo','Dio','Eli','Fay','Gus','Hana','Ike','Jun'];
+  let players, tick, running, speed, lastApple, lastOrange, log, pendingBuy, pendingSell, intervalId;
+
+  function init(){
+    players = NAMES.map((n,i)=>({
+      id: i,
+      name: n,
+      apples: i<5 ? 25 : 75,
+      oranges: i<5 ? 75 : 25,
+      coins: 100,
+      alive: true,
+      deathTick: null,
+      isYou: i===0,
+    }));
+    tick = 0; running = true; speed = 1;
+    lastApple = null; lastOrange = null;
+    log = [];
+    pendingBuy = null; pendingSell = null;
+    addLog('Game started. You are ' + NAMES[0] + ' (apple-heavy).', 'tick');
+    render();
+    startLoop();
+  }
+
+  function startLoop(){
+    if(intervalId) clearInterval(intervalId);
+    intervalId = setInterval(()=>{ if(running) step(); }, 1000/speed);
+  }
+
+  function addLog(msg, cls){
+    log.unshift({msg, cls: cls||''});
+    if(log.length>40) log.pop();
+  }
+
+  // AI player strategy: aims for balanced holdings, values survival
+  function aiTrade(p){
+    // Skip human player
+    if(p.isYou) return null;
+    const fairApple = lastApple || 2;
+    const fairOrange = lastOrange || 2;
+    // If apple-heavy (more apples than oranges+2), sell apples; buy oranges
+    // If orange-heavy, opposite
+    const diff = p.apples - p.oranges;
+    if(diff > 2){
+      // want to sell apple, buy orange
+      return { action: diff > 10 ? 'sell_apple_aggr' : 'sell_apple', fairApple, fairOrange };
+    } else if(diff < -2){
+      return { action: diff < -10 ? 'sell_orange_aggr' : 'sell_orange', fairApple, fairOrange };
+    }
+    return { action: 'hold', fairApple, fairOrange };
+  }
+
+  function matchTrade(seller, buyer, item, price){
+    // seller sells 1 unit of item to buyer for price
+    if(item==='apple'){
+      if(seller.apples<1 || buyer.coins<price) return false;
+      seller.apples--; buyer.apples++;
+    } else {
+      if(seller.oranges<1 || buyer.coins<price) return false;
+      seller.oranges--; buyer.oranges++;
+    }
+    seller.coins += price;
+    buyer.coins -= price;
+    if(item==='apple') lastApple = price;
+    else lastOrange = price;
+    return true;
+  }
+
+  function runAIMarket(){
+    // Each AI decides what to do; we run a simple order-matching round
+    const sellers = []; const buyers = [];
+    players.forEach(p=>{
+      if(!p.alive || p.isYou) return;
+      const t = aiTrade(p);
+      if(!t) return;
+      if(t.action.startsWith('sell_apple')){
+        const agg = t.action.endsWith('aggr');
+        sellers.push({p, item:'apple', price: Math.max(1, Math.round((t.fairApple + (agg?-0.5:0.5))*2)/2) });
+        buyers.push({p, item:'orange', price: Math.round((t.fairOrange + (agg?0.5:-0.5))*2)/2 });
+      } else if(t.action.startsWith('sell_orange')){
+        const agg = t.action.endsWith('aggr');
+        sellers.push({p, item:'orange', price: Math.max(1, Math.round((t.fairOrange + (agg?-0.5:0.5))*2)/2) });
+        buyers.push({p, item:'apple', price: Math.round((t.fairApple + (agg?0.5:-0.5))*2)/2 });
+      }
+    });
+    // Insert player's pending orders
+    if(pendingBuy && players[0].alive){
+      buyers.push({p: players[0], item: pendingBuy.item, price: pendingBuy.price, qty: pendingBuy.qty, isPlayer:true });
+    }
+    if(pendingSell && players[0].alive){
+      sellers.push({p: players[0], item: pendingSell.item, price: pendingSell.price, qty: pendingSell.qty, isPlayer:true });
+    }
+    // Match: for each item
+    ['apple','orange'].forEach(item=>{
+      const itemSellers = sellers.filter(s=>s.item===item).sort((a,b)=>a.price-b.price);
+      const itemBuyers = buyers.filter(b=>b.item===item).sort((a,b)=>b.price-a.price);
+      let si=0, bi=0;
+      while(si<itemSellers.length && bi<itemBuyers.length){
+        const s = itemSellers[si], b = itemBuyers[bi];
+        if(s.p.id===b.p.id){ si++; continue; }
+        if(b.price >= s.price){
+          const price = Math.round(((s.price+b.price)/2)*2)/2;
+          const ok = matchTrade(s.p, b.p, item, price);
+          if(ok){
+            const cls = b.isPlayer ? 'buy' : (s.isPlayer ? 'sell' : '');
+            addLog(`t${tick}: ${s.p.name} → ${b.p.name} · ${item} @ ${price}¢`, cls);
+            // Handle quantities for player
+            if(s.isPlayer){ s.qty=(s.qty||1)-1; if(s.qty<=0){ pendingSell=null; si++; } }
+            else si++;
+            if(b.isPlayer){ b.qty=(b.qty||1)-1; if(b.qty<=0){ pendingBuy=null; bi++; } }
+            else bi++;
+          } else { si++; }
+        } else break;
+      }
+    });
+  }
+
+  function step(){
+    tick++;
+    runAIMarket();
+    // Consumption: each alive player needs 1 apple + 1 orange
+    if (tick%5==0){
+    players.forEach(p=>{
+      if(!p.alive) return;
+      if(p.apples>=1 && p.oranges>=1){
+        p.apples--; p.oranges--;
+      } else {
+        p.alive=false; p.deathTick=tick;
+        addLog(`t${tick}: ☠ ${p.name} starved (out of ${p.apples<1?'apples':'oranges'})`, 'die');
+      }
+    });
+  }
+    // Check game over
+    const aliveCount = players.filter(p=>p.alive).length;
+    if(aliveCount<=1){
+      running=false;
+      clearInterval(intervalId);
+    }
+    render();
+  }
+
+  function render(){
+    document.getElementById('time').textContent = tick + 's';
+    document.getElementById('alive').textContent = players.filter(p=>p.alive).length + ' / 10';
+    document.getElementById('p-apple').textContent = lastApple!=null ? lastApple + '¢' : '—';
+    document.getElementById('p-orange').textContent = lastOrange!=null ? lastOrange + '¢' : '—';
+
+    const plist = document.getElementById('players');
+    plist.innerHTML = players.map(p=>{
+      const cls = (p.isYou?'you ':'') + (!p.alive?'dead':'');
+      const badge = p.isYou ? '<span class="you-badge">you</span>' : (p.deathTick?`<span style="font-size:11px;color:#A32D2D;">t${p.deathTick}</span>`:'');
+      return `<div class="p-card ${cls}">
+        <div class="pname">${p.name} ${badge}</div>
+        <div class="prow"><span>🍎 ${p.apples}</span><span>🍊 ${p.oranges}</span></div>
+        <div class="prow"><span>coins</span><span>${Math.round(p.coins)}¢</span></div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('log').innerHTML = log.map(l=>`<div class="${l.cls}">${l.msg}</div>`).join('');
+
+    // Game over banner
+    const alive = players.filter(p=>p.alive);
+    if(!running && (alive.length<=1 || tick>0)){
+      const panel = document.getElementById('ctrl-panel');
+      if(!document.getElementById('go-banner') && (alive.length<=1)){
+        const div = document.createElement('div');
+        div.id='go-banner';
+        div.className='game-over';
+        const winner = alive[0] || players.slice().sort((a,b)=>b.deathTick-a.deathTick)[0];
+        const youResult = players[0].alive ? 'YOU SURVIVED! 🏆' : `You died at t${players[0].deathTick}`;
+        div.innerHTML = `<h2>${youResult}</h2><p>Last survivor: ${winner.name} (t${winner.deathTick||tick})</p>`;
+        panel.parentNode.insertBefore(div, panel);
+      }
+    }
+  }
+
+  window.placeBuy = function(){
+    const item = document.getElementById('buy-item').value;
+    const qty = Math.max(1, parseInt(document.getElementById('buy-qty').value)||1);
+    const price = parseFloat(document.getElementById('buy-price').value)||1;
+    pendingBuy = {item, qty, price};
+    addLog(`t${tick}: [you] buy order: ${qty} ${item} @ ≤${price}¢`, 'buy');
+    render();
+  };
+
+  window.placeSell = function(){
+    const item = document.getElementById('sell-item').value;
+    const qty = Math.max(1, parseInt(document.getElementById('sell-qty').value)||1);
+    const price = parseFloat(document.getElementById('sell-price').value)||1;
+    pendingSell = {item, qty, price};
+    addLog(`t${tick}: [you] sell order: ${qty} ${item} @ ≥${price}¢`, 'sell');
+    render();
+  };
+
+  window.toggleGame = function(){
+    running = !running;
+    document.getElementById('pp-btn').textContent = running?'Pause':'Resume';
+  };
+
+  window.resetGame = function(){
+    const b = document.getElementById('go-banner'); if(b) b.remove();
+    init();
+  };
+
+  window.changeSpeed = function(){
+    const speeds=[1,2,4,8];
+    speed = speeds[(speeds.indexOf(speed)+1)%speeds.length];
+    document.getElementById('spd-btn').textContent = 'Speed: '+speed+'×';
+    startLoop();
+  };
+
+  init();
+})();
+</script>
