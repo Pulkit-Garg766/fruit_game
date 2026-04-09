@@ -106,7 +106,7 @@
 <script>
 (function(){
   const NAMES = ['Ava','Ben','Cleo','Dio','Eli','Fay','Gus','Hana','Ike','Jun'];
-  const COOLDOWN = 3; // ticks (seconds at 1x) between buy or sell actions per player
+  const COOLDOWN = 10; // ticks (seconds at 1x) between buy or sell actions per player
   let players, tick, running, speed, lastApple, lastOrange, log, pendingBuy, pendingSell, intervalId;
 
   function init(){
@@ -242,7 +242,7 @@
     });
     runAIMarket();
     // Consumption every 5 ticks
-    if (tick%5==0){
+    if (tick%10==0){
       players.forEach(p=>{
         if(!p.alive) return;
         if(p.apples>=1 && p.oranges>=1){
