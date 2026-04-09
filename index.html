@@ -242,7 +242,7 @@
     });
     runAIMarket();
     // Consumption every 5 ticks
-    if (tick%10==0){
+    if (tick%8==0){
       players.forEach(p=>{
         if(!p.alive) return;
         if(p.apples>=1 && p.oranges>=1){
