@@ -108,7 +108,7 @@
 <script>
 (function(){
   const NAMES = ['Ava','Ben','Cleo','Dio','Eli','Fay','Gus','Hana','Ike','Jun'];
-  const COOLDOWN = 5;
+  const COOLDOWN = 0;
   const CONSUME_EVERY = 10;
   let players, tick, running, speed, lastApple, lastOrange, log, pendingBuy, pendingSell, intervalId;
 
@@ -118,7 +118,7 @@
       name: n,
       apples: i<5 ? 25 : 75,
       oranges: i<5 ? 75 : 25,
-      coins: 10,
+      coins: 20,
       alive: true,
       deathTick: null,
       isYou: i===0,
